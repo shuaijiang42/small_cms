@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ object.name }}</h1>
+<p><strong>Unit:</strong> {{ object.unit }}</p>
+
+<a href="{% url 'nutritionalinformation-edit' object.pk %}" class="btn btn-primary">Edit</a>
+<a href="{% url 'nutritionalinformation-list' %}" class="btn btn-secondary">Back to List</a>
+{% endblock %}

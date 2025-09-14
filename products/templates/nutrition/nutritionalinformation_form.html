@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{% if object %}Edit{% else %}Add{% endif %} Nutritional Information</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-success">Save</button>
+  <a href="{% url 'nutritionalinformation-list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}
