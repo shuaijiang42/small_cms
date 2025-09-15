@@ -37,7 +37,6 @@ class NutritionalInformationDeleteView(DeleteView):
     success_url = reverse_lazy('nutritionalinformation-list')
 
 
-
 class ProductListView(ListView):
     model = Product
     template_name = 'products/product_list.html'
@@ -67,40 +66,65 @@ class ProductCreateView(CreateView):
 
     def get(self, request, *args, **kwargs):
         form = self.form_class()
-        formset = ProductNutritionalValueFormSet()
+        formset = ProductNutritionalValueFormSet(
+            instance=Product(),
+            prefix='nutritional_values'
+        )
         return render(request, self.template_name, {"form": form, "formset": formset})
 
     def post(self, request, *args, **kwargs):
         form = self.form_class(request.POST)
-        formset = ProductNutritionalValueFormSet(request.POST)
+        temp_instance = Product()
+
+        formset = ProductNutritionalValueFormSet(
+            request.POST,
+            instance=temp_instance,
+            prefix='nutritional_values'
+        )
         if form.is_valid() and formset.is_valid():
             product = form.save()
             formset.instance = product
             formset.save()
             return redirect(self.success_url)
+
         return render(request, self.template_name, {"form": form, "formset": formset})
 class ProductUpdateView(UpdateView):
     model = Product
     form_class = ProductForm
-    template_name = 'products/product_form.html'
-    success_url = reverse_lazy('product-list')
+    template_name = "products/product_form.html"
 
-    def get(self, request, *args, **kwargs):
-        product = self.get_object()
-        form = self.form_class(instance=product)
-        formset = ProductNutritionalValueFormSet(instance=product)
-        return render(request, self.template_name, {"form": form, "formset": formset, "object": product})
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        product = self.object
 
-    def post(self, request, *args, **kwargs):
-        product = self.get_object()
-        form = self.form_class(request.POST, instance=product)
-        formset = ProductNutritionalValueFormSet(request.POST, instance=product)
-        if form.is_valid() and formset.is_valid():
-            form.save()
+        if self.request.POST:
+            data['formset'] = ProductNutritionalValueFormSet(
+                self.request.POST,
+                instance=self.object,
+                prefix='nutritional_values',
+                form_kwargs={'product': product}  
+            )
+        else:
+            data['formset'] = ProductNutritionalValueFormSet(
+                instance=self.object,
+                prefix='nutritional_values',
+                form_kwargs={'product': product}  
+            ) 
+        return data
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        #import ipdb; ipdb.set_trace()
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
             formset.save()
-            return redirect(self.success_url)
-        return render(request, self.template_name, {"form": form, "formset": formset, "object": product})
+            return redirect(self.get_success_url())
+        return self.form_invalid(form)
 
+    def get_success_url(self):
+        return reverse_lazy('product-detail', kwargs={'pk': self.object.pk})
 class ProductDetailView(DetailView):
     model = Product
     template_name = 'products/product_detail.html'
@@ -111,27 +135,28 @@ class ProductDeleteView(DeleteView):
     template_name = 'products/product_confirm_delete.html'
     success_url = reverse_lazy('product-list')
 
-class ProductNutritionalValueDeleteView(DeleteView):
-    model = ProductNutritionalValue
-    template_name = "products/nutritionalvalue_confirm_delete.html"
-    context_object_name = "nutritional_value"
+class ProductNutritionalValuesUpdateView(UpdateView):
+    model = Product
+    form_class = ProductForm
+    template_name = 'products/product_form.html'
 
-    def get_success_url(self):
-        return reverse_lazy("product-detail", kwargs={"pk": self.object.product.id})
-    
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        if self.request.POST:
+            data['formset'] = ProductNutritionalValueFormSet(
+                self.request.POST, instance=self.object
+            )
+        else:
+            data['formset'] = ProductNutritionalValueFormSet(instance=self.object)
+        return data
 
-class ProductNutritionalValuesUpdateView(View):
-    template_name = "products/product_nutritional_values_form.html"
-
-    def get(self, request, pk):
-        product = get_object_or_404(Product, pk=pk)
-        formset = ProductNutritionalValueFormSet(instance=product)
-        return render(request, self.template_name, {"product": product, "formset": formset})
-
-    def post(self, request, pk):
-        product = get_object_or_404(Product, pk=pk)
-        formset = ProductNutritionalValueFormSet(request.POST, instance=product)
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
         if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
             formset.save()
-            return redirect("product-detail", pk=product.id)
-        return render(request, self.template_name, {"product": product, "formset": formset})
+            return redirect(self.get_success_url())
+        else:
+            return self.form_invalid(form)

@@ -49,5 +49,7 @@ urlpatterns = [
         'products/<int:pk>/nutritional-values/',
         views.ProductNutritionalValuesUpdateView.as_view(),
         name="product-nutritional-values-update",
-    ),
+    )
+
 ]
+
